@@ -5,14 +5,13 @@ import cv2
 def striping_noise_generator(src, noise_strength=10, stripe_width=2, direction='horizontal'):
     rows, cols, channels = src.shape
 
-    # 각 stripe_width 개의 행마다 동일한 노이즈 값을 가지도록 노이즈 생성
-    num_stripes = rows // stripe_width  # stripe_width 줄씩 묶어서 노이즈를 적용할 수 있는 줄의 개수
-    stripe_noise = np.random.randint(-noise_strength, noise_strength, size=(num_stripes, 1, 1))
-
-    # stripe_width 줄씩 동일한 노이즈를 적용하여 새로운 노이즈 배열 생성
-    stripe_noise = np.repeat(stripe_noise, stripe_width, axis=0)
-
     if direction == "horizontal":
+        # 각 stripe_width 개의 행마다 동일한 노이즈 값을 가지도록 노이즈 생성
+        num_stripes = rows // stripe_width  # stripe_width 줄씩 묶어서 노이즈를 적용할 수 있는 줄의 개수
+        stripe_noise = np.random.randint(-noise_strength, noise_strength, size=(num_stripes, 1, 1))
+
+        # stripe_width 줄씩 동일한 노이즈를 적용하여 새로운 노이즈 배열 생성
+        stripe_noise = np.repeat(stripe_noise, stripe_width, axis=0)
 
         # 만약 총 행 수가 stripe_width로 나누어 떨어지지 않으면 남은 행에도 노이즈를 추가
         if stripe_noise.shape[0] < rows:
@@ -67,7 +66,7 @@ def missing_line_generator(src, num_threshold=10, len_threshold=300):
     for row in missing_rows:
         # 결손 시작 위치와 길이 설정
         start_col = np.random.randint(0, cols)  # 결손 시작 위치
-        line_length = np.random.randint(100, len_threshold + 1)  # 결손 길이 (10    0부터 threshold까지)
+        line_length = np.random.randint(100, len_threshold + 1)  # 결손 길이 (100부터 len_threshold까지)
 
         # 결손 구간이 이미지 경계를 넘어가지 않도록 설정
         end_col = min(start_col + line_length, cols)
@@ -78,29 +77,29 @@ def missing_line_generator(src, num_threshold=10, len_threshold=300):
     return missing_line_image
 
 
-def haze_noise_generator(src, haze_strength=150):
-    rows, cols, channels = src.shape
-    haze_image = src.copy()
+def haze_noise_generator(src, intensity=0.5):
+    # 이미지 크기 확인
+    height, width, channels = src.shape
 
-    # 안개의 밝기 레벨 설정 (랜덤한 밝기를 가지는 행렬 생성)
-    haze_layer = np.random.randint(0, haze_strength, (rows, cols, 1)).astype(np.uint8)
-    haze_layer = np.repeat(haze_layer, channels, axis=2)  # 채널 수 맞추기 (1채널을 3채널로 확장)
+    # 흰색 조명의 헤이즈 효과 생성
+    white_haze = np.full((height, width, channels), 200, dtype=np.uint8)
 
-    # 이미지에 안개 층을 덧씌우기 (haze_image:haze_layer = 7:3 비율로)
-    haze_image = cv2.addWeighted(haze_image, 0.7, haze_layer, 0.3, 0)
+    # 원본 이미지와 헤이즈 블렌딩
+    hazy_image = cv2.addWeighted(src, 1 - intensity, white_haze, intensity, 0)
 
-    return haze_image
+    return hazy_image
 
-
-def add_gaussian_noise(src, mean=0, var=50):
+def gaussian_noise_generator(src, mean=0, var=50):
     sigma = var ** 0.5
     gaussian_noise = np.random.normal(mean, sigma, src.shape)
     noisy_image = src + gaussian_noise
     return np.clip(noisy_image, 0, 255).astype(np.uint8)
 
 
-def add_salt_pepper_noise(src, s_vs_p=0.5, amount=0.004):
+def salt_pepper_noise_generator(src):
     noisy_image = np.copy(src)
+    s_vs_p = 0.5
+    amount = 0.02
 
     # Salt 노이즈 (흰색) 추가
     num_salt = np.ceil(amount * src.size * s_vs_p / src.shape[2])  # 채널 수로 나누어 픽셀 수로 맞춤
@@ -115,21 +114,47 @@ def add_salt_pepper_noise(src, s_vs_p=0.5, amount=0.004):
     return noisy_image
 
 
-def add_poisson_noise(src):
+def poisson_noise_generator(src):
     noisy_image = np.copy(src)
     for i in range(src.shape[2]):  # 채널별로 독립적으로 적용
         noisy_image[:, :, i] = np.random.poisson(src[:, :, i]).astype(np.uint8)
     return noisy_image
 
 
-def add_speckle_noise(src, mean=0, var=0.01):
-    sigma = var ** 0.5
-    speckle_noise = np.random.normal(mean, sigma, src.shape)
-    noisy_image = src + src * speckle_noise
-    return np.clip(noisy_image, 0, 255).astype(np.uint8)
+def atmospheric_noise_generator(src, blue_intensity=0.3, green_intensity=0.1, red_intensity=0.05, contrast=0.7):
+    # 이미지 정규화 (0~1)
+    src = src / 255.0
+
+    # 채널별로 다른 강도의 산란 효과 추가
+    haze_effect = src.copy()
+    haze_effect[:, :, 0] += blue_intensity  # 파란색 채널
+    haze_effect[:, :, 1] += green_intensity  # 녹색 채널
+    haze_effect[:, :, 2] += red_intensity  # 빨간색 채널
+    haze_effect = np.clip(haze_effect, 0, 1)
+
+    # 대비 감소 효과
+    mean_intensity = np.mean(haze_effect, axis=(0, 1), keepdims=True)
+    contrast_effect = mean_intensity + contrast * (haze_effect - mean_intensity)
+
+    # 결과 이미지
+    noisy_image = np.clip(contrast_effect, 0, 1)
+    return (noisy_image * 255).astype(np.uint8)
 
 
-def add_vignetting_noise(src, strength=0.4):
+def terrain_noise_generator(src, noise_intensity=0.3, scale=5):
+    # 이미지를 0~1 범위로 정규화
+    src = src / 255.0
+
+    # Terrain 노이즈 패턴 생성
+    terrain_pattern = np.random.rand(src.shape[0], src.shape[1], 1) * noise_intensity
+    terrain_noise = terrain_pattern * np.sin(np.linspace(0, scale * np.pi, src.shape[1])).reshape(1, -1, 1)
+    noisy_image = src + terrain_noise
+    noisy_image = np.clip(noisy_image, 0, 1)
+
+    return (noisy_image * 255).astype(np.uint8)
+
+
+def vignetting_noise_generator(src, strength=0.4):
     # strength: 비네팅 강도 (0 ~ 1 사이의 값, 높을수록 강함)
 
     rows, cols = src.shape[:2]
@@ -139,7 +164,7 @@ def add_vignetting_noise(src, strength=0.4):
 
     # 거리 기반 마스크 생성 (중앙에서 가장자리로 갈수록 값이 작아짐)
     X_result, Y_result = np.meshgrid(np.linspace(-1, 1, cols), np.linspace(-1, 1, rows))
-    distance = np.sqrt(X_result**2 + Y_result**2)
+    distance = np.sqrt(X_result ** 2 + Y_result ** 2)
 
     # 거리의 지수화를 통해 가장자리와 중앙의 차이를 크게 만듦
     mask = 1 - (distance ** power * strength)
@@ -154,22 +179,31 @@ def add_vignetting_noise(src, strength=0.4):
     return np.clip(vignetting_image, 0, 255).astype(np.uint8)
 
 
-def add_sun_angle_noise(src, angle=45, intensity=0.5):
-    # angle: 태양의 각도 (0 ~ 360, 시계방향, 0도는 수평 오른쪽)
-    # intensity: 조명의 강도 (0 ~ 1 사이의 값, 높을수록 밝기 변화가 큼)
+def sun_angle_noise_generator(src, angle=45, intensity=0.5, gamma=1.0):
+    """
+    태양 고도각에 따른 노이즈를 생성합니다.
 
+    Parameters:
+    src (numpy.ndarray): 원본 이미지
+    angle (float): 태양의 고도각 (0 ~ 90도)
+    intensity (float): 조명의 강도 (0 ~ 1 사이의 값)
+    gamma (float): 감마 보정 값 (1.0 이상 권장)
+
+    Returns:
+    numpy.ndarray: 노이즈가 추가된 이미지
+    """
     rows, cols = src.shape[:2]
 
     # 고도각을 라디안으로 변환 후 sin 값을 계산
     angle_rad = np.deg2rad(angle)
     sin_alpha = np.sin(angle_rad)
 
-    # if sin_alpha == 0:
-    #     print("태양 고도각이 0도일 때는 노이즈 추가가 불가능합니다.")
-    #     return src
+    # 고도각이 낮을 때 안전 장치 추가
+    if sin_alpha < 0.1:  # 특정 각도 이하에서는 최소 밝기값으로 설정
+        sin_alpha = 0.1
 
-    # 노이즈 생성: DN 값을 sin(α)로 나누고 노이즈 강도를 반영하여 조정
-    noise_factor = (sin_alpha * intensity + (1 - intensity))
+    # 노이즈 강도 계산 (감마 보정을 추가하여 비선형 효과 적용)
+    noise_factor = 1 / (sin_alpha ** gamma * intensity + (1 - intensity))
 
     # 이미지에 노이즈 적용
     noisy_image = src * noise_factor

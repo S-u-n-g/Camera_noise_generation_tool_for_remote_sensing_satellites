@@ -1,5 +1,3 @@
-import numpy as np
-import cv2
 from noise_utils import *
 
 if __name__ == '__main__':
@@ -8,53 +6,58 @@ if __name__ == '__main__':
     src = cv2.imread(image_path)
 
     # striping noise 생성
-    striped_image = striping_noise_generator(src, 12, 2, 'horizontal')
+    striped_image = striping_noise_generator(src, noise_strength=12, stripe_width=2, direction='horizontal')
 
     # missing line noise 생성
-    missing_line_image = missing_line_generator(src, 15, 512)
+    missing_line_image = missing_line_generator(src, num_threshold=15, len_threshold=512)
 
     # haze_noise 생성
-    hazed_image = haze_noise_generator(src, 150)
-
-    # Gaussian noise 생성
-    gaussian_image = add_gaussian_noise(src, mean=0, var=100)
+    hazed_image = haze_noise_generator(src, intensity=0.5)
 
     # Salt-and-Pepper noise 생성
-    salt_pepper_image = add_salt_pepper_noise(src, s_vs_p=0.5, amount=0.02)
+    salt_pepper_image = salt_pepper_noise_generator(src)
 
     # Poisson noise 생성
-    poisson_image = add_poisson_noise(src)
+    poisson_image = poisson_noise_generator(src)
 
-    # Speckle noise 생성
-    speckle_image = add_speckle_noise(src, mean=0, var=0.01)
+    # Atmospheric noise 생성
+    atmospheric_image = atmospheric_noise_generator(src, blue_intensity=0.3, green_intensity=0.1, red_intensity=0.05, contrast=0.7)
+
+    # Terrain noise 생성
+    terrain_image = terrain_noise_generator(src, noise_intensity=0.3, scale=5)
 
     # Vignetting noise 생성
-    vignetting_image = add_vignetting_noise(src, strength=0.4)
+    vignetting_image = vignetting_noise_generator(src, strength=0.4)
 
     # Sun Angle noise 생성
-    sun_angle_image = add_sun_angle_noise(src, angle=90, intensity=1)
+    sun_angle_image = sun_angle_noise_generator(src, angle=45, intensity=0.7, gamma=1.0)
 
     # 새로운 이미지 저장 (cv2는 BGR 형식이므로 BGR로 저장)
     # cv2.imwrite('striped_image.png', striped_image)
     # cv2.imwrite('missing_line_image.png', missing_line_image)
     # cv2.imwrite('hazed_image.png', hazed_image)
     # cv2.imwrite('hazed_image.png', hazed_image)
-    # cv2.imwrite('gaussian_image.png', gaussian_image)
     # cv2.imwrite('salt_and_pepper_image.png', salt_pepper_image)
     # cv2.imwrite('poisson_image.png', poisson_image)
-    # cv2.imwrite('speckle_image.png', speckle_image)
 
     # 결과 이미지 보기
     cv2.imshow('Original Image', src)
     cv2.imshow('Striped Image', striped_image)
     cv2.imshow('Missing Line Image', missing_line_image)
     cv2.imshow('Hazed Image', hazed_image)
-    cv2.imshow("Gaussian Noise", gaussian_image)
     cv2.imshow("Salt and Pepper Noise", salt_pepper_image)
     cv2.imshow("Poisson Noise", poisson_image)
-    cv2.imshow("Speckle Noise", speckle_image)
+    cv2.imshow("Atmospheric Noise", atmospheric_image)
+    cv2.imshow("Terrain Noise", terrain_image)
     cv2.imshow("Vignetting Noise", vignetting_image)
     cv2.imshow("Sun Angle Noise", sun_angle_image)
+
+    # noise_image = striping_noise_generator(src)
+    # noise_image = salt_pepper_noise_generator(noise_image)
+    # noise_image = haze_noise_generator(noise_image)
+    # noise_image = vignetting_noise_generator(noise_image)
+    # cv2.imshow("Noise", noise_image)
+
 
     cv2.waitKey(0)  # 키 입력을 기다림
     cv2.destroyAllWindows()

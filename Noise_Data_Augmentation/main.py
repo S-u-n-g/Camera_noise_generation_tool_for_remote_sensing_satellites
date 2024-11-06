@@ -1,4 +1,4 @@
-from noise_utils import *
+from option import *
 
 if __name__ == '__main__':
     # 이미지 불러오기 (cv2는 BGR 형식으로 이미지를 불러옴)
@@ -52,12 +52,13 @@ if __name__ == '__main__':
     cv2.imshow("Vignetting Noise", vignetting_image)
     cv2.imshow("Sun Angle Noise", sun_angle_image)
 
-    # noise_image = striping_noise_generator(src)
-    # noise_image = salt_pepper_noise_generator(noise_image)
-    # noise_image = haze_noise_generator(noise_image)
-    # noise_image = vignetting_noise_generator(noise_image)
-    # cv2.imshow("Noise", noise_image)
+    opt1 = option_1(src)
+    opt2 = option_2(src)
+    opt3 = option_3(src)
 
+    cv2.imshow("Option1 Image", opt1)
+    cv2.imshow("Option2 Image", opt2)
+    cv2.imshow("Option3 Image", opt3)
 
     cv2.waitKey(0)  # 키 입력을 기다림
     cv2.destroyAllWindows()

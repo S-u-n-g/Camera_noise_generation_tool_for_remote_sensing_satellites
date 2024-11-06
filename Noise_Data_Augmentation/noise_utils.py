@@ -57,7 +57,7 @@ def striping_noise_generator(src, noise_strength=10, stripe_width=2, direction='
     return striped_image
 
 
-def missing_line_generator(src, num_threshold=10, len_threshold=300):
+def missing_line_generator(src, num_threshold=10, len_threshold=512):
     rows, cols, channels = src.shape
     missing_line_image = src.copy()
 

@@ -65,7 +65,7 @@ def missing_line_generator(src, num_threshold=10, len_threshold=300):
     missing_rows = np.random.choice(rows, size=np.random.randint(1, num_threshold + 1), replace=False)
     for row in missing_rows:
         # 결손 시작 위치와 길이 설정
-        start_col = np.random.randint(0, cols)  # 결손 시작 위치
+        start_col = np.random.randint(0, cols / 2)  # 결손 시작 위치
         line_length = np.random.randint(100, len_threshold + 1)  # 결손 길이 (100부터 len_threshold까지)
 
         # 결손 구간이 이미지 경계를 넘어가지 않도록 설정
@@ -82,12 +82,13 @@ def haze_noise_generator(src, intensity=0.5):
     height, width, channels = src.shape
 
     # 흰색 조명의 헤이즈 효과 생성
-    white_haze = np.full((height, width, channels), 200, dtype=np.uint8)
+    white_haze = np.full((height, width, channels), 255, dtype=np.uint8)
 
     # 원본 이미지와 헤이즈 블렌딩
     hazy_image = cv2.addWeighted(src, 1 - intensity, white_haze, intensity, 0)
 
     return hazy_image
+
 
 def gaussian_noise_generator(src, mean=0, var=50):
     sigma = var ** 0.5
